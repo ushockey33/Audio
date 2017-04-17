@@ -30,7 +30,7 @@ public class Audio {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        //readAud("lib/test.wav");
+        readAud("lib/test.wav");
         //readAud("lib/test2.wav");
         //readAud("lib/test2.wav");
         Number[] array = new Number[10];
@@ -38,8 +38,8 @@ public class Audio {
         array[1] = 2;
         array[2] = 3;
 
-        test swingWorkerRealTime = new test();
-        swingWorkerRealTime.go();
+        //test swingWorkerRealTime = new test();
+        //swingWorkerRealTime.go();
 
     }
 
