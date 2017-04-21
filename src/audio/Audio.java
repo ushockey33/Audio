@@ -18,6 +18,9 @@ import javax.swing.JFrame;
 import java.awt.*;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.*;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -25,12 +28,14 @@ import java.awt.image.*;
  */
 public class Audio {
     public static int bufferNum =0;
+    public static long SLEEP_PRECISION = TimeUnit.MILLISECONDS.toNanos(2); 
+    public static long SPIN_YIELD_PRECISION = TimeUnit.MILLISECONDS.toNanos(2);
 
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        readAud("lib/test.wav");
+        readAud("lib/Larry.wav");
         //readAud("lib/test2.wav");
         //readAud("lib/test2.wav");
         Number[] array = new Number[10];
@@ -68,18 +73,19 @@ public class Audio {
             int numChannels = wavFile.getNumChannels();
 
             // Create a buffer of 100 frames
-            double[] buffer = new double[100 * numChannels];
-
+            double[] buffer = new double[150 * numChannels];//100
+            ArrayList output = new ArrayList();
             int framesRead;
             double min = Double.MAX_VALUE;
             double max = Double.MIN_VALUE;
+            long outputFrame = 0;
 
             do {
                 // Read frames into buffer
-                framesRead = wavFile.readFrames(buffer, 100);
+                framesRead = wavFile.readFrames(buffer, 150); //100
 
                 // Loop through frames and look for minimum and maximum value
-                
+                outputFrame++;
                 for (int s = 0; s < framesRead * numChannels; s++) {
                     if (buffer[s] > max) {
                         max = buffer[s];
@@ -90,20 +96,85 @@ public class Audio {
                     bufferNum++;
                     //System.out.println(buffer[s]);
                 }
+                double avg = getArrayAvg(buffer);
+                //System.out.println(avg);
+                output.add(avg);
+
             } while (framesRead != 0);
 
             // Close the wavFile
             wavFile.close();
 
+            double time = getTime(pathName);
+            System.out.println("time " + time);
+            System.out.println("outputFrames " + outputFrame);
+            runVisual(output, time, outputFrame);
+
             // Output the minimum and maximum value
             System.out.printf("Min: %f, Max: %f\n", min, max);
-            double time = getTime(pathName);
-            System.out.println("Time in seconds "+ time);
-            System.out.println("Number of buffers "+ bufferNum);
+            System.out.println("Length of buffer " + buffer.length);
+            System.out.println("while loops " + outputFrame);
+
         } catch (Exception e) {
             System.err.println(e);
         }
 
+    }
+
+    public static void runVisual(ArrayList output, double time, long outputFrame) {
+        double d = (time / outputFrame) *1000000000;
+        long timePerOut = Math.round(d);
+        System.out.println(timePerOut);
+        int x = 0;
+        long startTime = System.nanoTime();
+        while (x < output.size()) {
+            System.out.println(output.get(x));
+            x++;
+            try {
+                //TODO Find good way to have real time output of datapoints
+                //Thread.sleep(timePerOut);
+                //java.util.concurrent.locks.LockSupport.parkNanos(timePerOut);
+                sleepNanos(timePerOut);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+        }
+        long endTime = System.nanoTime();
+        long duration = (endTime - startTime); 
+        System.out.println("Run time " +duration);
+        System.out.println("Actual time " +time);
+    }
+
+    public static double getArrayAvg(double[] numbers) {
+        double sum = 0;
+
+        for (int i = 0; i < numbers.length; i++) {
+            sum = sum + numbers[i];
+        }
+
+        //calculate average value
+        double average = sum / numbers.length;
+        return average;
+
+    }
+    /**
+     * Sleeps thread with nanoseconds however it will sacrifice some of your cpu
+     * @param nanoDuration
+     * @throws InterruptedException 
+     */
+    public static void sleepNanos(long nanoDuration) throws InterruptedException {
+        final long end = System.nanoTime() + nanoDuration;
+        long timeLeft = nanoDuration;
+        do {
+            if (timeLeft > SLEEP_PRECISION) {
+                Thread.sleep(1);
+            } else if (timeLeft > SPIN_YIELD_PRECISION) {
+                Thread.yield();
+            }
+
+            timeLeft = end - System.nanoTime();
+        } while (timeLeft > 0);
     }
 
 }
