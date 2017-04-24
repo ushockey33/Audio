@@ -21,22 +21,26 @@ import java.awt.image.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import org.json.simple.JSONObject;
+import javax.sound.sampled.*;
 /**
  *
  * @author seandubiel
  */
 public class Audio {
     public static int bufferNum =0;
-    public static long SLEEP_PRECISION = TimeUnit.MILLISECONDS.toNanos(2); 
-    public static long SPIN_YIELD_PRECISION = TimeUnit.MILLISECONDS.toNanos(2);
+    public static long SLEEP_PRECISION = TimeUnit.MILLISECONDS.toNanos(1); //2
+    public static long SPIN_YIELD_PRECISION = TimeUnit.MILLISECONDS.toNanos(1);//2
+    private static Map<Long, Double> timeFreq = new HashMap<Long, Double>();
 
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        readAud("lib/Larry.wav");
-        //readAud("lib/test2.wav");
+        JSONObject obj = new JSONObject();
+        
+        //readAud("lib/Larry.wav");
+        readAud("lib/test2.wav");
         //readAud("lib/test2.wav");
         Number[] array = new Number[10];
         array[0] = 1;
@@ -64,7 +68,9 @@ public class Audio {
         bufferNum = 0;
         try {
             // Open the wav file specified as the first argument
-            WavFile wavFile = WavFile.openWavFile(new File(pathName));
+            File curr = new File(pathName);
+            
+            WavFile wavFile = WavFile.openWavFile(curr);
 
             // Display information about the wav file
             wavFile.display();
@@ -73,16 +79,19 @@ public class Audio {
             int numChannels = wavFile.getNumChannels();
 
             // Create a buffer of 100 frames
-            double[] buffer = new double[150 * numChannels];//100
+            double[] buffer = new double[200 * numChannels];//100
             ArrayList output = new ArrayList();
             int framesRead;
             double min = Double.MAX_VALUE;
             double max = Double.MIN_VALUE;
             long outputFrame = 0;
 
+            long startTime = System.nanoTime();
+            
+            
             do {
                 // Read frames into buffer
-                framesRead = wavFile.readFrames(buffer, 150); //100
+                framesRead = wavFile.readFrames(buffer, 200); //100
 
                 // Loop through frames and look for minimum and maximum value
                 outputFrame++;
@@ -94,6 +103,7 @@ public class Audio {
                         min = buffer[s];
                     }
                     bufferNum++;
+                    
                     //System.out.println(buffer[s]);
                 }
                 double avg = getArrayAvg(buffer);
@@ -105,10 +115,24 @@ public class Audio {
             // Close the wavFile
             wavFile.close();
 
+
             double time = getTime(pathName);
+            double timePerD = (time / outputFrame) * 1000000;
+            long timePer = Math.round(timePerD);
+            //System.out.println("TIME PER MAIN "+ timePer);
+            int x = 0;
+            while(x<outputFrame){
+                System.out.println("INPUT TIME PER MAIN " +(x+1)*timePer);
+                timeFreq.put((x+1)*timePer, (double)output.get(x));
+                x++;
+            }
+            
+            
+            
             System.out.println("time " + time);
             System.out.println("outputFrames " + outputFrame);
-            runVisual(output, time, outputFrame);
+            runTimeFreq(time,outputFrame);
+            //runVisual(output, time, outputFrame, curr);
 
             // Output the minimum and maximum value
             System.out.printf("Min: %f, Max: %f\n", min, max);
@@ -121,12 +145,44 @@ public class Audio {
 
     }
 
-    public static void runVisual(ArrayList output, double time, long outputFrame) {
+    public static void runTimeFreq(double time, long outputFrame) {
+        int i = 0;
+        
+        //System.out.println("Start Time "+startTime);
+//        for (Long key : timeFreq.keySet()) {
+//            long curr = System.nanoTime()-startTime;
+//            //System.out.println("Key "+timeFreq.get(key));
+//            //System.out.println("curr Time "+curr);
+//            if(key > curr - 100000 &&  key < curr + 100000){
+//                System.out.println(timeFreq.get(key));
+//            }
+//        }
+        
+        double d = (time / outputFrame);
+        long timePerOut = Math.round(d);
+        System.out.println("TIME PER OUT "+d);
+        long startTime = System.nanoTime();
+        long curr;
+        while (true) {
+            curr = (System.nanoTime() - startTime);
+            System.out.println("CURR " + curr);
+            if (timeFreq.get(curr) != null) {
+                System.out.println(timeFreq.get(curr));
+            }
+            i++;
+        }
+
+        
+
+    }
+
+    public static void runVisual(ArrayList output, double time, long outputFrame, File curr) {
         double d = (time / outputFrame) *1000000000;
         long timePerOut = Math.round(d);
         System.out.println(timePerOut);
         int x = 0;
         long startTime = System.nanoTime();
+        play(curr);
         while (x < output.size()) {
             System.out.println(output.get(x));
             x++;
@@ -175,6 +231,26 @@ public class Audio {
 
             timeLeft = end - System.nanoTime();
         } while (timeLeft > 0);
+    }
+
+    public static void play(File file) {
+        try {
+            final Clip clip = (Clip) AudioSystem.getLine(new Line.Info(Clip.class));
+
+            clip.addLineListener(new LineListener() {
+                @Override
+                public void update(LineEvent event) {
+                    if (event.getType() == LineEvent.Type.STOP) {
+                        clip.close();
+                    }
+                }
+            });
+
+            clip.open(AudioSystem.getAudioInputStream(file));
+            clip.start();
+        } catch (Exception exc) {
+            exc.printStackTrace(System.out);
+        }
     }
 
 }
