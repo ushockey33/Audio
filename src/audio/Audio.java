@@ -58,6 +58,7 @@ public class Audio {
         AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new File(pathName));
         AudioFormat format = audioInputStream.getFormat();
         long frames = audioInputStream.getFrameLength();
+        System.out.println("FRAME RATE MAIN "+ format.getFrameRate());
         durationInSeconds = (frames + 0.0) / format.getFrameRate();
         }catch(Exception ex){
             System.out.println("Could not get length of file");
@@ -119,10 +120,10 @@ public class Audio {
             double time = getTime(pathName);
             double timePerD = (time / outputFrame) * 1000000;
             long timePer = Math.round(timePerD);
-            //System.out.println("TIME PER MAIN "+ timePer);
+            System.out.println("TIME PER MAIN "+ timePer);
             int x = 0;
             while(x<outputFrame){
-                System.out.println("INPUT TIME PER MAIN " +(x+1)*timePer);
+                //System.out.println("INPUT TIME PER MAIN " +(x+1)*timePer);
                 timeFreq.put((x+1)*timePer, (double)output.get(x));
                 x++;
             }
@@ -131,7 +132,7 @@ public class Audio {
             
             System.out.println("time " + time);
             System.out.println("outputFrames " + outputFrame);
-            runTimeFreq(time,outputFrame);
+            runTimeFreq(time,outputFrame, output, timePer);
             //runVisual(output, time, outputFrame, curr);
 
             // Output the minimum and maximum value
@@ -145,10 +146,10 @@ public class Audio {
 
     }
 
-    public static void runTimeFreq(double time, long outputFrame) {
-        int i = 0;
+    public static void runTimeFreq(double time, long outputFrame, ArrayList output, long timePer) {
+        int i = 3;
+
         
-        //System.out.println("Start Time "+startTime);
 //        for (Long key : timeFreq.keySet()) {
 //            long curr = System.nanoTime()-startTime;
 //            //System.out.println("Key "+timeFreq.get(key));
@@ -157,21 +158,34 @@ public class Audio {
 //                System.out.println(timeFreq.get(key));
 //            }
 //        }
+
+        double timePerOut = (long)(time / outputFrame);
+        System.out.println("TIME PER OUT "+timePerOut);
         
-        double d = (time / outputFrame);
-        long timePerOut = Math.round(d);
-        System.out.println("TIME PER OUT "+d);
-        long startTime = System.nanoTime();
         long curr;
+        long startTime = System.nanoTime();
+        while(true){
+            
+            curr = (System.nanoTime() - startTime);
+            System.out.println("CURR "+curr +" TIME PER "+timePer*i);
+            if(timePer*i > curr - 30000 &&  timePer*i < curr + 30000){
+                System.out.println(output.get(i-1));
+                i++;
+            }
+            
+        }
+        
+        /*
+        
         while (true) {
             curr = (System.nanoTime() - startTime);
-            System.out.println("CURR " + curr);
+            //System.out.println("CURR " + curr);
             if (timeFreq.get(curr) != null) {
                 System.out.println(timeFreq.get(curr));
             }
             i++;
         }
-
+*/
         
 
     }
