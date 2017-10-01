@@ -42,10 +42,7 @@ public class Audio {
         //readAud("lib/Larry.wav");
         readAud("lib/test2.wav");
         //readAud("lib/test2.wav");
-        Number[] array = new Number[10];
-        array[0] = 1;
-        array[1] = 2;
-        array[2] = 3;
+
 
         //test swingWorkerRealTime = new test();
         //swingWorkerRealTime.go();
